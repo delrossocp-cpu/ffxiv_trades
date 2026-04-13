@@ -33,6 +33,15 @@ cur.execute(
     )
 item_ids = [row[0] for row in cur.fetchall()]
 
+cur.execute("""
+    SELECT id FROM items i
+    JOIN categories c
+    ON i.category_id = c.id
+    WHERE i.id NOT IN %s 
+    AND c.category IN ('Ingredient', 'Dye', 'Reagent', 'Materia')
+""", (tuple(item_ids),))
+item_ids.extend([row[0] for row in cur.fetchall()])
+
 ##Updates table w/ all listings for most recently updated items of interest
 current_listings_ingest(cur, conn, headers, item_ids)
 
