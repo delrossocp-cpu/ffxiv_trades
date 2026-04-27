@@ -23,11 +23,11 @@ def dashboard_refresh(cur, conn, answer):
             raise
 
     try:
-        cur.execute("TRUNCATE TABLE most_recent_items")
-        print("SUCCESS: Most recent items erased.")
+        cur.execute("TRUNCATE TABLE item_scope")
+        print("SUCCESS: Item scope table erased.")
     except Exception as e:
         conn.rollback()
-        print(f"Error: Something went wrong while trying to truncate most_recent_items table. See{e}")
+        print(f"Error: Something went wrong while trying to truncate item_scope table. See{e}")
         raise
 
     try:
