@@ -2,7 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+<<<<<<< HEAD
       <module fileurl="file://$PROJECT_DIR$/.idea/FFXIV-trade-logging.iml" filepath="$PROJECT_DIR$/.idea/FFXIV-trade-logging.iml" />
+=======
+      <module fileurl="file://$PROJECT_DIR$/.idea/FFXIV.iml" filepath="$PROJECT_DIR$/.idea/FFXIV.iml" />
+>>>>>>> 4c5ceabaa980c358754f78854105327f7b740e7f
     </modules>
   </component>
 </project>

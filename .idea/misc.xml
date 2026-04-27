@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
+<<<<<<< HEAD
     <option name="sdkName" value="Python 3.10 (FFXIV-trade-logging)" />
+=======
+    <option name="sdkName" value="Python 3.10 (FFXIV)" />
+>>>>>>> 4c5ceabaa980c358754f78854105327f7b740e7f
   </component>
 </project>
