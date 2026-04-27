@@ -19,13 +19,16 @@ def index():
 
 @app.route("/items", methods=["GET"])
 def get_items():
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT id, name FROM public.items ORDER BY name")
-    items = cur.fetchall()
-    cur.close()
-    conn.close()
-    return jsonify(items)
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT id, name FROM public.items ORDER BY name")
+        items = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(items)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/trades", methods=["GET"])
 def get_trades():
