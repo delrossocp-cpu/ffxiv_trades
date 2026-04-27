@@ -13,13 +13,6 @@ def get_db():
         port=5432
     )
 
-
- # host="db.rbivpjgqxfdkbeqyrtqa.supabase.co",
- #        database="postgres",
- #        port=5432,
- #        user="postgres",
- #        password="6grYucoOkmLa3c0f"
-
 @app.route("/")
 def index():
     return render_template("index.html")
