@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFXIV Trades</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #0f0f1a; color: #eee; padding: 20px; }
+        h1 { text-align: center; margin-bottom: 20px; color: #e94560; }
+        h2 { margin-bottom: 10px; color: #e94560; }
+        .card { background: #1e2d4a; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 6px;
+                border: 1px solid #444; background: #0a2040; color: #eee; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #e94560; color: white;
+                 border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #c73652; }
+        .summary { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .summary div { text-align: center; }
+        .summary span { display: block; font-size: 22px; font-weight: bold; color: #e94560; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: #0f0f1a; padding: 8px; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #333; }
+        .profit-pos { color: #4caf50; }
+        .profit-neg { color: #e94560; }
+        #autocomplete-list { background: #0f3460; border-radius: 6px; max-height: 200px;
+                             overflow-y: auto; margin-top: -10px; margin-bottom: 12px; }
+        .autocomplete-item { padding: 10px; cursor: pointer; }
+        .autocomplete-item:hover { background: #e94560; }
+    </style>
+</head>
+<body>
+    <h1>FFXIV Trades</h1>
+
+    <div class="card">
+        <h2>Log Trade</h2>
+        <input type="text" id="item-name" placeholder="Item name" oninput="searchItems()">
+        <div id="autocomplete-list"></div>
+        <input type="hidden" id="item-id">
+        <input type="number" id="quantity" placeholder="Quantity" oninput="calcTotals()">
+        <input type="number" id="purchase-price" placeholder="Purchase price per unit" oninput="calcTotals()">
+        <input type="number" id="sell-price" placeholder="Sell price per unit" oninput="calcTotals()">
+        <input type="text" id="totals-display" placeholder="Totals will appear here" readonly>
+        <input type="date" id="purchase-date">
+        <input type="date" id="sale-date" placeholder="Sale date">
+        <button onclick="submitTrade()">Log Trade</button>
+    </div>
+
+    <div class="card">
+        <h2>Summary</h2>
+        <div class="summary">
+            <div><span id="total-trades">0</span>Trades</div>
+            <div><span id="total-profit">0</span>Total Profit</div>
+            <div><span id="avg-profit">0</span>Avg Profit</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>History</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th><th>Qty</th><th>Buy</th><th>Sell</th><th>Profit</th><th></th>
+                </tr>
+            </thead>
+            <tbody id="trades-table"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let allItems = [];
+
+        document.getElementById("purchase-date").valueAsDate = new Date();
+
+        async function loadItems() {
+            const res = await fetch("/items");
+            allItems = await res.json();
+        }
+
+        function searchItems() {
+            const query = document.getElementById("item-name").value.toLowerCase();
+            const list = document.getElementById("autocomplete-list");
+            document.getElementById("item-id").value = "";
+            if (!query) { list.innerHTML = ""; return; }
+            const matches = allItems.filter(i => i.name.toLowerCase().includes(query)).slice(0, 10);
+            list.innerHTML = matches.map(i =>
+                `<div class="autocomplete-item" onclick="selectItem(${i.id}, '${i.name}')">${i.name}</div>`
+            ).join("");
+        }
+
+        function selectItem(id, name) {
+            document.getElementById("item-id").value = id;
+            document.getElementById("item-name").value = name;
+            document.getElementById("autocomplete-list").innerHTML = "";
+        }
+
+        function calcTotals() {
+            const qty = parseFloat(document.getElementById("quantity").value) || 0;
+            const buy = parseFloat(document.getElementById("purchase-price").value) || 0;
+            const sell = parseFloat(document.getElementById("sell-price").value) || 0;
+            const totalBuy = qty * buy;
+            const totalSell = qty * sell;
+            const profit = totalSell - totalBuy;
+            document.getElementById("totals-display").value =
+                `Total Buy: ${totalBuy.toLocaleString()} | Total Sell: ${totalSell.toLocaleString()} | Profit: ${profit.toLocaleString()}`;
+        }
+
+        async function submitTrade() {
+            const itemId = document.getElementById("item-id").value;
+            const itemName = document.getElementById("item-name").value;
+            const quantity = parseInt(document.getElementById("quantity").value);
+            const purchasePrice = parseFloat(document.getElementById("purchase-price").value);
+            const sellPrice = parseFloat(document.getElementById("sell-price").value);
+            const purchaseDate = document.getElementById("purchase-date").value;
+            const saleDate = document.getElementById("sale-date").value;
+
+            if (!itemId || !quantity || !purchasePrice || !purchaseDate) {
+            alert("Please fill in item, quantity, purchase price and purchase date.");
+            return;
+            }
+
+            await fetch("/trades", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    item_id: itemId, item_name: itemName, quantity,
+                    purchase_price_per_unit: purchasePrice,
+                    sell_price_per_unit: sellPrice || null,
+                    purchase_date: purchaseDate,
+                    sale_date: saleDate || null
+                })
+            });
+
+            loadTrades();
+            document.getElementById("item-name").value = "";
+            document.getElementById("item-id").value = "";
+            document.getElementById("quantity").value = "";
+            document.getElementById("purchase-price").value = "";
+            document.getElementById("sell-price").value = "";
+            document.getElementById("totals-display").value = "";
+        }
+
+        async function loadTrades() {
+            const res = await fetch("/trades");
+            const trades = await res.json();
+
+            const totalProfit = trades.reduce((sum, t) => sum + (t.profit !== null ? parseFloat(t.profit) : 0), 0);
+            document.getElementById("total-trades").textContent = trades.length;
+            document.getElementById("total-profit").textContent = totalProfit.toLocaleString();
+            document.getElementById("avg-profit").textContent = trades.length
+                ? Math.round(totalProfit / trades.length).toLocaleString() : 0;
+
+            document.getElementById("trades-table").innerHTML = trades.map(t => `
+                <tr>
+                    <td>${t.item_name}</td>
+                    <td>${t.quantity}</td>
+                    <td>${parseFloat(t.purchase_price_per_unit).toLocaleString()}</td>
+                    <td>${t.sell_price_per_unit ? parseFloat(t.sell_price_per_unit).toLocaleString() : '<em style="color:#888">Pending</em>'}</td>
+                    <td class="${t.profit !== null ? (parseFloat(t.profit) >= 0 ? 'profit-pos' : 'profit-neg') : ''}">
+                        ${t.profit !== null ? parseFloat(t.profit).toLocaleString() : '-'}
+                    </td>
+                    <td>${t.sell_price_per_unit ? '' : `<button onclick="openSaleModal(${t.id})" style="padding:4px 8px;font-size:12px">Record Sale</button>`}</td>
+                </tr>
+            `).join("");
+        }
+
+        function openSaleModal(tradeId) {
+    const date = new Date().toISOString().split("T")[0];
+    const modal = document.createElement("div");
+    modal.id = "sale-modal";
+    modal.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:999";
+    modal.innerHTML = `
+        <div style="background:#16213e;padding:24px;border-radius:10px;width:90%;max-width:400px">
+            <h2 style="color:#e94560;margin-bottom:16px">Record Sale</h2>
+            <input type="number" id="modal-sell-price" placeholder="Sell price per unit"
+                   style="width:100%;padding:10px;margin-bottom:12px;border-radius:6px;border:1px solid #444;background:#0f3460;color:#eee;font-size:16px">
+            <input type="date" id="modal-sale-date" value="${date}"
+                   style="width:100%;padding:10px;margin-bottom:12px;border-radius:6px;border:1px solid #444;background:#0f3460;color:#eee;font-size:16px">
+            <button onclick="submitSale(${tradeId})" style="width:100%;padding:12px;background:#e94560;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer;margin-bottom:8px">Save</button>
+            <button onclick="document.getElementById('sale-modal').remove()"
+                    style="width:100%;padding:12px;background:#333;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer">Cancel</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function openSaleModal(tradeId) {
+    const date = new Date().toISOString().split("T")[0];
+    const modal = document.createElement("div");
+    modal.id = "sale-modal";
+    modal.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:999";
+    modal.innerHTML = `
+        <div style="background:#16213e;padding:24px;border-radius:10px;width:90%;max-width:400px">
+            <h2 style="color:#e94560;margin-bottom:16px">Record Sale</h2>
+            <input type="number" id="modal-sell-price" placeholder="Sell price per unit"
+                   style="width:100%;padding:10px;margin-bottom:12px;border-radius:6px;border:1px solid #444;background:#0f3460;color:#eee;font-size:16px">
+            <input type="date" id="modal-sale-date" value="${date}"
+                   style="width:100%;padding:10px;margin-bottom:12px;border-radius:6px;border:1px solid #444;background:#0f3460;color:#eee;font-size:16px">
+            <button onclick="submitSale(${tradeId})" style="width:100%;padding:12px;background:#e94560;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer;margin-bottom:8px">Save</button>
+            <button onclick="document.getElementById('sale-modal').remove()"
+                    style="width:100%;padding:12px;background:#333;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer">Cancel</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function submitSale(tradeId) {
+    const sellPrice = parseFloat(document.getElementById("modal-sell-price").value);
+    const saleDate = document.getElementById("modal-sale-date").value;
+
+    if (!sellPrice || !saleDate) {
+        alert("Please fill in all fields.");
+        return;
+    }
+
+    await fetch(`/trades/${tradeId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sell_price_per_unit: sellPrice, sale_date: saleDate })
+    });
+
+    document.getElementById("sale-modal").remove();
+    loadTrades();
+}
+        loadItems();
+        loadTrades();
+    </script>
+</body>
+</html>
