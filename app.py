@@ -6,12 +6,19 @@ app = Flask(__name__)
 
 def get_db():
     return psycopg2.connect(
-        host="db.rbivpjgqxfdkbeqyrtqa.supabase.co",
-        database="postgres",
-        port=5432,
-        user="postgres",
-        password="6grYucoOkmLa3c0f"
+        host=os.environ.get("DB_HOST"),
+        database=os.environ.get("DB_NAME"),
+        user=os.environ.get("DB_USER"),
+        password=os.environ.get("DB_PASSWORD"),
+        port=5432
     )
+
+
+ # host="db.rbivpjgqxfdkbeqyrtqa.supabase.co",
+ #        database="postgres",
+ #        port=5432,
+ #        user="postgres",
+ #        password="6grYucoOkmLa3c0f"
 
 @app.route("/")
 def index():
