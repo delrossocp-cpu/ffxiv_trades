@@ -6,10 +6,11 @@ app = Flask(__name__)
 
 def get_db():
     return psycopg2.connect(
-        host="localhost",
-        database="FFXIV Market",
+        host="db.rbivpjgqxfdkbeqyrtqa.supabase.co",
+        database="postgres",
+        port=5432,
         user="postgres",
-        password="55bfo"
+        password="6grYucoOkmLa3c0f"
     )
 
 @app.route("/")
